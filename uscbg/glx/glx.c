@@ -72,7 +72,7 @@ void glx_init(glx_surface_t* p_scr)
    glx.h = p_scr->h;
    glx.scr = p_scr;
    SLNK_INIT(&glx_res_head);
-   TRC_REG(glx, /* TRC_DEBUG | */ TRC_ERROR);
+   TRC_REG(glx, TRC_DEBUG | TRC_ERROR);
 }
 
 /*-----------------------------------------------------------------------------
@@ -122,9 +122,24 @@ glx_image_t* glx_load_image_v2(char* fn, bool_t tiled)
       }
       if (p_surface->format->BytesPerPixel < 3)
       {
-         TRC_ERR(glx, "Error: '%s' is not a 24 bpp or 32bpp with alpha image", fn);
+         /* Try to convert to RGB888 */
+         TRC_DBG(glx, "Trying to convert '%s' to 24 bpp", fn);
+         SDL_Surface* p_surface2;
+         SDL_PixelFormat* p_fmt = glx_get()->scr->format;
+         p_surface2 = SDL_CreateRGBSurface(SDL_SWSURFACE,
+            p_surface->w, p_surface->h, 32, 0x000000ff, 0x0000ff00,
+            0x00ff0000, 0xff000000);
+         /*TRC_DBG(glx, "Format: 0x%08x, 0x%08x, 0x%08x, 0x%08x", p_fmt->Rmask,
+            p_fmt->Gmask, p_fmt->Bmask, p_fmt->Amask);*/
+         if (p_surface2 == NULL)
+         {
+            TRC_ERR(glx, "Error: '%s' is not a 24 bpp or 32bpp with alpha image", fn);
+            SDL_FreeSurface(p_surface);
+            goto error;
+         }
+         SDL_BlitSurface(p_surface, NULL, p_surface2, NULL);
          SDL_FreeSurface(p_surface);
-         goto error;
+         p_surface = p_surface2;
       }
       /*Generate an OpenGL 2D texture from the SDL_Surface*.*/
       glPixelStorei(GL_UNPACK_ALIGNMENT,4);

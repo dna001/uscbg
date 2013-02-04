@@ -99,15 +99,19 @@ void net_server_send_cmd(int sock, int cmd, void* data)
       }
       case NET_CMD_SERVER_BOARD_CARDS_UPDATE:
       {
-#if 0
          int i;
          for (i=0;i<5;i++)
          {
-            card_t* p_card = core_get()->board_cards[i];
+            card_t* p_card = core_get()->board_planning_cards[i];
             uint8_t id = (p_card)?p_card->id:0;
             len += pbuf_pack(&packet[len], "b", id);
          }
-#endif
+         for (i=0;i<8;i++)
+         {
+            card_t* p_card = core_get()->board_contract_cards[i];
+            uint8_t id = (p_card)?p_card->id:0;
+            len += pbuf_pack(&packet[len], "b", id);
+         }
          break;
       }
       case NET_CMD_SERVER_START_GAME:

@@ -352,8 +352,7 @@ STATIC hsm_msg_t const* srv_investments_hnd(srv_hsm_t* p_hsm,
       card_t* p_card = cards_find(&p_core->active_player->cards_head,
          p_core->card_selection);
       REQUIRE(p_card != NULL);
-      core_log(p_core->active_player, "selected card %s",
-         cards_get_name(p_card));
+      core_log(p_core->active_player, "selected card %d", p_card->id);
       core_invest();
       HSM_STATE_TRAN(p_hsm, &p_hsm->investments);
       p_msg = HSM_MSG_PROCESSED;

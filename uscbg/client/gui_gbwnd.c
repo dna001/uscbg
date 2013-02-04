@@ -37,6 +37,7 @@ typedef struct
    glx_image_t* planning_cards_img[5];
    glx_image_t* contract_cards_img[8];
    glx_image_t* player_cubes_img[4];
+   glx_image_t* markers_img[9];
    int offset_x;
    int offset_y;
    float zoom;
@@ -52,11 +53,9 @@ static gui_wgt_set_cfg_fn_t gui_board_set_cfg;
 static gui_wgt_get_cfg_fn_t gui_board_get_cfg;
 static gui_wgt_draw_fn_t gui_board_draw;
 static void gui_board_draw_blocks(gui_widget_t* p_me, bool_t select);
-//static void gui_board_draw_elements(gui_widget_t* p_me, bool_t select);
-//static void gui_board_draw_action_display(gui_widget_t* p_me, bool_t select);
-//static void gui_board_draw_wanderlust_tiles(gui_widget_t* p_me, bool_t select);
 static void gui_board_draw_cards(gui_widget_t* p_me, bool_t select);
-//static void gui_board_draw_hexagon(float w, float h, float zoom);
+static void gui_board_draw_vocations(gui_widget_t* p_me, bool_t select);
+static void gui_board_draw_markers(gui_widget_t* p_me, bool_t select);
 static gui_wgt_mouse_fn_t gui_board_handle_mouse;
 static int gui_board_handle_selection(gui_widget_t* p_me, int x, int y,
    gui_gbwnd_draw_fn_t* fn);
@@ -106,23 +105,57 @@ static char* vocations_image_path[VOCATION_LAST] = {
    "data/Vocation-finance.png",
    "data/Vocation-transport.png",
    "data/Vocation-education.png",
-   "data/Vocation-energy.png"
-   "data/Vocation-tour.png"
-   "data/Vocation-factory.png"
-   "data/Vocation-public.png"
+   "data/Vocation-energy.png",
+   "data/Vocation-tour.png",
+   "data/Vocation-factory.png",
+   "data/Vocation-public.png",
    "data/Vocation-media.png"
 };
 
-static const glx_rect_t initiative_boxes[6] =
-{
-   {1399,149,42,42},{1447,149,42,42},{1495,149,42,42},
-   {1543,149,42,42},{1591,149,42,42},{1639,149,42,42}
+static char* markers_image_path[9] = {
+   "data/Round-4.png", /* Presige markers */
+   "data/Round-5.png",
+   "data/Round-6.png",
+   "data/Round-7.png", /* Wealth markers */
+   "data/Round-8.png",
+   "data/Round-9.png",
+   "data/Round-10.png",
+   "data/Round-11.png",
+   "data/Round-12.png"
 };
 
-static const glx_rect_t card_boxes[5] =
+static const glx_rect_t planning_card_boxes[5] =
 {
-   {1743,114,146,201},{1743,321,146,201},{1743,526,146,201},
-   {1743,732,146,201},{1743,939,146,201}
+   {78,1076,125,175},{78,869,125,175},{78,661,125,175},
+   {78,455,125,175},{78,243,125,175}
+};
+
+static const glx_rect_t contract_card_boxes[8] =
+{
+   {1445,987,125,175},{1445,788,125,175},{1445,590,125,175},
+   {1445,392,125,175},{1445,195,125,175},{1194,195,125,175},
+   {1194,392,125,175},{1194,590,125,175}
+};
+
+static const glx_rect_t markers_column_boxes[3] =
+{
+   {499,233,31,31},{684,233,31,31},{870,233,31,31}
+};
+
+static const glx_rect_t markers_row_boxes[6] =
+{
+   {984,301,31,31},{984,394,31,31},{984,486,31,31},
+   {984,579,31,31},{984,672,31,31},{984,765,31,31}
+};
+
+static const glx_rect_t vocation_boxes[23] =
+{
+   {348,63,35,35},{348,106,35,35},{416,63,35,35},{416,106,35,35},
+   {484,63,35,35},{484,107,35,35},{528,85,35,35},{595,63,35,35},
+   {595,107,35,35},{638,85,35,35},{706,63,35,35},{706,107,35,35},
+   {750,63,35,35},{750,107,35,35},{818,63,35,35},{818,107,35,35},
+   {861,63,35,35},{861,107,35,35},{929,63,35,35},{929,107,35,35},
+   {973,63,35,35},{973,107,35,35},{1016,85,35,35}
 };
 
 /* GLOBAL CONSTANTS / VARIABLES **********************************************/
@@ -180,6 +213,16 @@ static gui_widget_t* gui_board_create(void)
       p_board->player_cubes_img[i] = glx_load_image(player_cubes_image_path[i]);
       REQUIRE(p_board->player_cubes_img[i] != NULL);
    }
+   for (i=0;i<VOCATION_LAST;i++)
+   {
+      p_board->vocations_img[i] = glx_load_image(vocations_image_path[i]);
+      REQUIRE(p_board->vocations_img[i] != NULL);
+   }
+   for (i=0;i<9;i++)
+   {
+      p_board->markers_img[i] = glx_load_image(markers_image_path[i]);
+      REQUIRE(p_board->markers_img[i] != NULL);
+   }
    /*p_board->tile_mark = glx_load_image("data/EarthTile_Mark.png");
    REQUIRE(p_board->tile_mark != NULL);
    p_board->element_ap_mark = glx_load_image("data/Element_Mark.png");
@@ -229,20 +272,32 @@ static void gui_board_set_cfg(gui_widget_t* p_me, char* cfg, void* data)
    REQUIRE(p_board != NULL);
    if (strcmp(cfg, "update") == 0) {
       int i;
-      /*for (i=0;i<5;i++)
+      for (i=0;i<5;i++)
       {
-         card_t* p_card = core_get()->board_cards[i];
-         if (p_board->cards_img[i] != NULL)
+         card_t* p_card = core_get()->board_planning_cards[i];
+         if (p_board->planning_cards_img[i] != NULL)
          {
-            glx_free_image(p_board->cards_img[i]);
-            p_board->cards_img[i] = NULL;
+            glx_free_image(p_board->planning_cards_img[i]);
+            p_board->planning_cards_img[i] = NULL;
          }
          if (p_card != NULL)
          {
-            char* path = cards_get_image_path(p_card);
-            p_board->cards_img[i] = glx_load_image(path);
+            p_board->planning_cards_img[i] = glx_load_image(p_card->img_path);
          }
-      }*/
+      }
+      for (i=0;i<8;i++)
+      {
+         card_t* p_card = core_get()->board_contract_cards[i];
+         if (p_board->contract_cards_img[i] != NULL)
+         {
+            glx_free_image(p_board->contract_cards_img[i]);
+            p_board->contract_cards_img[i] = NULL;
+         }
+         if (p_card != NULL)
+         {
+            p_board->contract_cards_img[i] = glx_load_image(p_card->img_path);
+         }
+      }
    }
 }
 
@@ -284,7 +339,11 @@ static void gui_board_draw(gui_widget_t* p_me)
    //glx_rect_set(&dstrect, p_me->x + 40 + 80*i, p_me->y, 1, 480);
    //glx_drawrect(&dstrect, GLX_RGBA(0x80, 0x80, 0x80, 0xff));
    /* Draw cards */
-   //gui_board_draw_cards(p_me, FALSE);
+   gui_board_draw_cards(p_me, FALSE);
+   /* Draw vocations */
+   gui_board_draw_vocations(p_me, FALSE);
+   /* Draw wealth and prestige markers */
+   gui_board_draw_markers(p_me, FALSE);
    glPopMatrix();
 }
 
@@ -321,6 +380,11 @@ static void gui_board_draw_blocks(gui_widget_t* p_me, bool_t select)
          for (j=0;j<p_blk->n_buildings;j++)
          {
             building_t* p_bld = &p_blk->buildings[j];
+            glx_image_t* p_img_owner = NULL;
+            if (p_bld->owner < PLAYER_COLOR_LAST)
+            {
+               p_img_owner = p_board->player_cubes_img[p_bld->owner];
+            }
             p_img = p_board->buildings_img[p_bld->zone*4 + (p_bld->size - 1)];
             glBindTexture(GL_TEXTURE_2D, p_img->texid);
             /* Draw building */
@@ -333,6 +397,12 @@ static void gui_board_draw_blocks(gui_widget_t* p_me, bool_t select)
                if (p_bld->block_pos & 0x8) lot = 3;
                glx_rect_set(&dstrect, (lot%2)*w/2, (lot/2)*h/2, w/2, h/2);
                glx_drawimage(p_img, NULL, &dstrect);
+               if (p_img_owner)
+               {
+                  glx_rect_set(&dstrect, (lot%2)*w/2 + 10, (lot/2)*h/2 + 10,
+                     w/4, h/4);
+                  glx_drawimage(p_img_owner, NULL, &dstrect);
+               }
             }
             if (p_bld->size == 3)
             {
@@ -367,11 +437,28 @@ static void gui_board_draw_cards(gui_widget_t* p_me, bool_t select)
    int i;
    for (i=0;i<5;i++)
    {
-      //p_img = p_board->cards_img[i];
-      dstrect = card_boxes[i];
+      p_img = p_board->planning_cards_img[i];
+      dstrect = planning_card_boxes[i];
       if (select && p_img)
       {
          glLoadName(i+1);
+      }
+      if (p_img)
+      {
+         glx_drawimage(p_img, NULL, &dstrect);
+      }
+      /*if (core_get()->board_cards_mark)
+      {
+         glx_drawrect(&dstrect, GLX_RGBA(0x00, 0x80, 0x0, 0x40));
+      }*/
+   }
+   for (i=0;i<8;i++)
+   {
+      p_img = p_board->contract_cards_img[i];
+      dstrect = contract_card_boxes[i];
+      if (select && p_img)
+      {
+         glLoadName(i+6);
       }
       if (p_img)
       {
@@ -386,23 +473,126 @@ static void gui_board_draw_cards(gui_widget_t* p_me, bool_t select)
 
 /*-----------------------------------------------------------------------------
 -----------------------------------------------------------------------------*/
-static void gui_board_draw_hexagon(float w, float h, float zoom)
+static void gui_board_draw_vocations(gui_widget_t* p_me, bool_t select)
 {
-   glBegin(GL_POLYGON);
-      /* Hexagon tile */
-      glTexCoord2f(0.25f,0.0f);
-      glVertex3f(-0.25f*w, -0.5f*h, 0.0f);
-      glTexCoord2f(0.0f,0.5f);
-      glVertex3f(-0.5f*w, 0.0f, 0.0f);
-      glTexCoord2f(0.25f,1.0f);
-      glVertex3f(-0.25f*w, 0.5f*h, 0.0f);
-      glTexCoord2f(0.75f,1.0f);
-      glVertex3f(0.25f*w, 0.5f*h, 0.0f);
-      glTexCoord2f(1.0f,0.5f);
-      glVertex3f(0.5f*w, 0.0f, 0.0f);
-      glTexCoord2f(0.75f,0.0f);
-      glVertex3f(0.25f*w, -0.5f*h, 0.0f);
-   glEnd();
+   gui_board_t* p_board = (gui_board_t*)p_me;
+   glx_rect_t dstrect;
+   glx_image_t* p_img = NULL;
+   core_t* p_core = core_get();
+   int i;
+   for (i=0;i<23;i++)
+   {
+      if (p_core->board_vocations & (1u << i))
+      {
+         p_img = p_board->vocations_img[core_vocbit2voc(i)];
+         dstrect = vocation_boxes[i];
+         if (select && p_img)
+         {
+            glLoadName(i+1);
+         }
+         if (p_img)
+         {
+            glx_drawimage(p_img, NULL, &dstrect);
+         }
+         /*if (core_get()->board_cards_mark)
+         {
+            glx_drawrect(&dstrect, GLX_RGBA(0x00, 0x80, 0x0, 0x40));
+         }*/
+      }
+   }
+}
+
+/*-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------*/
+static void gui_board_draw_markers(gui_widget_t* p_me, bool_t select)
+{
+   gui_board_t* p_board = (gui_board_t*)p_me;
+   glx_rect_t dstrect;
+   glx_image_t* p_img = NULL;
+   core_t* p_core = core_get();
+   int i;
+   /* Draw column markers */
+   for (i=0;i<3;i++)
+   {
+      int j;
+      p_img = NULL;
+      /* Find prestige markers at location column i */
+      for (j=0;j<3;j++)
+      {
+         if ((p_core->prestige_markers[3+j].columns & BIT((i<<1) + 1)) &&
+             (p_core->prestige_markers[3+j].columns & BIT(i<<1)))
+         {
+            p_img = p_board->markers_img[j];
+            break;
+         }
+      }
+      if (p_img == NULL)
+      {
+         /* Find wealth markers at location column i */
+         for (j=0;j<6;j++)
+         {
+            if ((p_core->wealth_markers[6+j].columns & BIT((i<<1) + 1)) &&
+                (p_core->wealth_markers[6+j].columns & BIT(i<<1)))
+            {
+               p_img = p_board->markers_img[3+j];
+               break;
+            }
+         }
+      }
+      dstrect = markers_column_boxes[i];
+      if (select)
+      {
+         glLoadName(i+1);
+      }
+      if (p_img)
+      {
+         glx_drawimage(p_img, NULL, &dstrect);
+      }
+      if (select)
+      {
+         glx_drawrect(&dstrect, GLX_RGBA(0x00, 0x80, 0x0, 0x40));
+      }
+   }
+   /* Draw row markers */
+   for (i=0;i<6;i++)
+   {
+      int j;
+      p_img = NULL;
+      /* Find prestige markers at location row i */
+      for (j=0;j<3;j++)
+      {
+         if (p_core->prestige_markers[3+j].rows & BIT(i))
+         {
+            p_img = p_board->markers_img[j];
+            break;
+         }
+      }
+      if (p_img == NULL)
+      {
+         /* Find wealth markers at location row i */
+         for (j=0;j<6;j++)
+         {
+            if (p_core->wealth_markers[6+j].rows & BIT(i))
+            {
+               p_img = p_board->markers_img[3+j];
+               break;
+            }
+         }
+      }
+      dstrect = markers_row_boxes[i];
+      if (select)
+      {
+         glLoadName(i+1);
+      }
+      if (p_img)
+      {
+         glx_drawimage(p_img, NULL, &dstrect);
+      }
+      if (select)
+      {
+         glx_drawrect(&dstrect, GLX_RGBA(0x00, 0x80, 0x0, 0x40));
+      }
+   }
 }
 
 /*-----------------------------------------------------------------------------

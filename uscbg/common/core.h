@@ -74,7 +74,8 @@ typedef enum
    VOCATION_FACTORY,
    VOCATION_PUBLIC_SERVICE,
    VOCATION_MEDIA,
-   VOCATION_LAST
+   VOCATION_NONE,
+   VOCATION_LAST = VOCATION_NONE
 } vocation_t;
 
 typedef enum
@@ -161,7 +162,7 @@ typedef struct
    card_t* board_contract_cards[8];
    bool_t board_cards_marked[MAX_BOARD_CARDS];
    uint8_t state;
-   uint8_t board_vocation_markers[VOCATION_LAST];
+   uint32_t board_vocations;
    block_t board_blocks[MAX_BOARD_BLOCKS];
    uint8_t board_election_track[5];
    prestige_wealth_marker_t prestige_markers[6];
@@ -344,6 +345,13 @@ void core_board_cards_mark(void);
 /*! \brief Clear marked cards. */
 /*---------------------------------------------------------------------------*/
 void core_board_cards_clear(void);
+
+/*---------------------------------------------------------------------------*/
+/*! \brief Convert vocation bit to vocation. */
+/*---------------------------------------------------------------------------*/
+vocation_t core_vocbit2voc(
+   uint32_t vocation_bit
+   );
 
 /*---------------------------------------------------------------------------*/
 /*! \brief Dump player data. */

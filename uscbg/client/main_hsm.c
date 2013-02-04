@@ -199,14 +199,14 @@ STATIC hsm_msg_t const* main_entry_hnd(hsm_t* p_hsm, hsm_msg_t const* p_msg)
       p_wgt->evt_cb = main_hsm_gui_event;
       gui_wnd_add(p_h->p_gb);
       /* Player info windows */
-      /*for (i=0;i<6;i++)
+      for (i=0;i<4;i++)
       {
-         p_h->p_gpi[i] = gui_piwnd_create(glx_get()->w - 300*((5-i)/3+1),
-            glx_get()->h - 40*(3 - i%3), 300, 40, main_hsm_gui_event);
+         p_h->p_gpi[i] = gui_piwnd_create(glx_get()->w - 100, 100*i,
+            100, 90, main_hsm_gui_event);
          //p_h->p_gpi[i]->visible = FALSE;
          gui_wnd_add(p_h->p_gpi[i]);
       }
-      p_h->p_gpi[0]->visible = TRUE;*/
+      p_h->p_gpi[0]->visible = TRUE;
       /* Menu window */
       p_h->p_gmenu = gui_wnd_create(NULL, "Menu", (glx_get()->w-200)/2, 150,
          200, 20, 0);
@@ -223,7 +223,7 @@ STATIC hsm_msg_t const* main_entry_hnd(hsm_t* p_hsm, hsm_msg_t const* p_msg)
       p_h->p_gap->set_cfg(p_h->p_gap, "bg_image", animal_image_path[5]);
       gui_wnd_add(p_h->p_gap);*/
       /* Status window */
-      p_h->p_gstat = gui_wnd_create(NULL, "Status", 40, 0,
+      p_h->p_gstat = gui_wnd_create(NULL, "Status", 0, 0,
          200, 40, 0);
       REQUIRE(p_h->p_gstat != NULL);
       gui_wnd_add(p_h->p_gstat);
@@ -479,7 +479,7 @@ STATIC hsm_msg_t const* main_game_hnd(main_hsm_t* p_hsm,
    }
    case HSM_EVT_NET_UPDATE_PLAYERS:
    {
-      /*player_t* p_player = SLNK_NEXT(player_t, &core_get()->players_head);
+      player_t* p_player = SLNK_NEXT(player_t, &core_get()->players_head);
       while(p_player != NULL)
       {
          int color = p_player->color;
@@ -489,7 +489,7 @@ STATIC hsm_msg_t const* main_game_hnd(main_hsm_t* p_hsm,
                "update", p_player);
          }
          p_player = SLNK_NEXT(player_t, p_player);
-      }*/
+      }
       p_msg = HSM_MSG_PROCESSED;
       break;
    }

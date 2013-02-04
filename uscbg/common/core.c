@@ -23,6 +23,7 @@ Copyright (c) 2013, All Rights Reserved.
 
 /* CONSTANTS / MACROS ********************************************************/
 #define MAX_PATH_LENGTH (255)
+#define MAX_STARTUP_BUILDINGS 12
 
 /* LOCAL DATATYPES ***********************************************************/
 typedef struct
@@ -49,7 +50,7 @@ TRC_DEF(core);
 block: |0|1|
        |2|3|
 */
-const startup_building_t startup_buildings[16] = {
+const startup_building_t startup_buildings[MAX_STARTUP_BUILDINGS] = {
    {0, BIT(3), ZONE_RES}, {5, BIT(2), ZONE_RES},
    {7, BIT(3), ZONE_IND}, {10, BIT(2), ZONE_COM},
    {14, BIT(3), ZONE_IND}, {15, BIT(2), ZONE_COM},
@@ -61,6 +62,18 @@ const startup_building_t startup_buildings[16] = {
 const uint8_t bonus_vp_tbl[] =
 {
    0, 1, 3, 6, 10, 15, 21, 28, 36, 45
+};
+
+/* Converts vocation bit value to vocation */
+static const vocation_t vocation_convert_table[24] = {
+   VOCATION_FINANCE, VOCATION_FINANCE, VOCATION_TRANSPORTATION,
+   VOCATION_TRANSPORTATION, VOCATION_EDUCATION, VOCATION_EDUCATION,
+   VOCATION_EDUCATION, VOCATION_ENERGY, VOCATION_ENERGY, VOCATION_ENERGY,
+   VOCATION_TOURISM, VOCATION_TOURISM, VOCATION_TOURISM, VOCATION_TOURISM,
+   VOCATION_FACTORY, VOCATION_FACTORY, VOCATION_FACTORY, VOCATION_FACTORY,
+   VOCATION_PUBLIC_SERVICE, VOCATION_PUBLIC_SERVICE,
+   VOCATION_PUBLIC_SERVICE, VOCATION_PUBLIC_SERVICE,
+   VOCATION_PUBLIC_SERVICE, VOCATION_MEDIA
 };
 
 static core_t core;
@@ -97,25 +110,37 @@ void core_init(core_net_send_fn_t* p_fn_send, core_net_broadcast_fn_t* p_fn_bc)
    core.wealth_markers[3].columns = BIT(1); /* Wealth 4 on column 1 */
    core.wealth_markers[4].columns = BIT(2); /* Wealth 5 on column 2 */
    core.wealth_markers[5].columns = BIT(3); /* Wealth 6 on column 3 */
-   core.startup_buildings = 12;
+   core.board_vocations = 0x7fffff;
+   core.startup_buildings = MAX_STARTUP_BUILDINGS;
+   cards_create_deck(&core.planning_deck_head, CARD_DECK_PLANNING);
+   cards_create_deck(&core.town_deck_head, CARD_DECK_TOWN);
    /* Test */
-   core.board_blocks[1].buildings[0].block_pos = 0x1;
-   core.board_blocks[1].buildings[0].size = 1;
-   core.board_blocks[1].buildings[0].zone = ZONE_CIV;
-   core.board_blocks[1].n_buildings = 1;
+#if 0
+   /* Wealth 7 on columns 0 and 1 */
+   core.wealth_markers[6].columns = BIT(0)|BIT(1);
+   /* Prestige 4 on row 0 */
+   core.prestige_markers[3].rows = BIT(0);
+   core.board_blocks[0].buildings[0].block_pos = 0x1;
+   core.board_blocks[0].buildings[0].size = 1;
+   core.board_blocks[0].buildings[0].zone = ZONE_CIV;
+   core.board_blocks[0].buildings[0].owner = PLAYER_COLOR_BLACK;
+   core.board_blocks[0].n_buildings = 1;
    core.board_blocks[4].buildings[0].block_pos = 0x1;
    core.board_blocks[4].buildings[0].size = 1;
    core.board_blocks[4].buildings[0].zone = ZONE_COM;
+   core.board_blocks[4].buildings[0].owner = PLAYER_COLOR_GREEN;
    core.board_blocks[4].n_buildings = 1;
    core.board_blocks[18].buildings[0].block_pos = 0x1;
    core.board_blocks[18].buildings[0].size = 1;
    core.board_blocks[18].buildings[0].zone = ZONE_IND;
+   core.board_blocks[18].buildings[0].owner = PLAYER_COLOR_LAST;
    core.board_blocks[18].n_buildings = 1;
    core.board_blocks[34].buildings[0].block_pos = 0x1;
    core.board_blocks[34].buildings[0].size = 1;
    core.board_blocks[34].buildings[0].zone = ZONE_RES;
+   core.board_blocks[34].buildings[0].owner = PLAYER_COLOR_LAST;
    core.board_blocks[34].n_buildings = 1;
-   //cards_create_deck(&core.cards_head);
+#endif
 }
 
 /*-----------------------------------------------------------------------------
@@ -136,6 +161,8 @@ core_t* core_get(void)
 bool_t core_newgame(bool_t load)
 {
    bool_t ret = FALSE;
+   int i;
+
    if (load)
    {
       core.state = CORE_STATE_SETUP;
@@ -157,7 +184,18 @@ bool_t core_newgame(bool_t load)
       srand((unsigned)time( NULL ));
       //cards_create_deck(&core.cards_head);
       //cards_shuffle_deck(&core.cards_head);
-      //core_prepare_players();
+      core_prepare_players();
+      for (i=0;i<5;i++)
+      {
+         core.board_planning_cards[i] = cards_draw(&core.planning_deck_head,
+                                                   -1);
+      }
+      for (i=0;i<5;i++)
+      {
+         core.board_contract_cards[i] = cards_draw(&core.town_deck_head,
+                                                   -1);
+      }
+      core_net_broadcast(NET_CMD_SERVER_BOARD_CARDS_UPDATE, NULL);
       /* Start player left most on initiative track */
       //core.current_action = CORE_AD_INITIATIVE_AP;
       //core.active_player = core_find_player_by_animal(core.ad.initiative[0]);
@@ -325,7 +363,7 @@ void core_action_build(void)
    { /* Only lot selected in this state. Set size and type here. */
       int block = lot/4;
       size = 1;
-      for (i=0;i<16;i++)
+      for (i=0;i<MAX_STARTUP_BUILDINGS;i++)
       {
          if (startup_buildings[i].block == block)
          {
@@ -348,6 +386,7 @@ void core_action_build(void)
    TRC_DBG(core, "building cost=%d", cost);
    p_player->wealth -= cost;
    core_net_broadcast(NET_CMD_SERVER_PLAYER_UPDATE, p_player);
+   core_log(p_player, "payed %d wealth for building", cost);
    //core_log(p_player, "built %s", p_card->name);
 }
 
@@ -751,7 +790,7 @@ void core_board_lots_mark(void)
    {
    case CORE_STATE_SETUP:
    { /* Mark free startup buildings. */
-      for (i=0;i<16;i++)
+      for (i=0;i<MAX_STARTUP_BUILDINGS;i++)
       {
          block_t* p_blk = &core.board_blocks[startup_buildings[i].block];
          if (p_blk->n_buildings == 0)
@@ -847,6 +886,14 @@ void core_board_cards_clear(void)
 
 /*-----------------------------------------------------------------------------
 -----------------------------------------------------------------------------*/
+vocation_t core_vocbit2voc(uint32_t vocation_bit)
+{
+   REQUIRE(vocation_bit < 24);
+   return vocation_convert_table[vocation_bit];
+}
+
+/*-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------*/
 player_t* core_get_next_player(void)
 {
    player_t* p_player = SLNK_NEXT(player_t, core.active_player);
@@ -915,8 +962,9 @@ static void core_prepare_players(void)
    {
       int i;
       p_player->ap = 6;
-      p_player->wealth = 30;
-      //p_player->gene_pool_max = 35 + (6 - core.n_players)*5 - 1;
+      if (core.n_players == 2) p_player->wealth = 39;
+      if (core.n_players == 3) p_player->wealth = 27;
+      if (core.n_players == 4) p_player->wealth = 21;
       p_player->prestige = 0;
       core_dbg_dump_player_data(p_player);
       core_net_broadcast(NET_CMD_SERVER_PLAYER_UPDATE, p_player);

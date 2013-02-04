@@ -15,35 +15,21 @@ Copyright (c) 2013, All Rights Reserved.
 /* EXPORTED DATA TYPES *******************************************************/
 typedef enum
 {
-   CARD_ID_NONE = 0,
-   CARD_ID_AQUATIC,
-   CARD_ID_BIODIVERSITY,
-   CARD_ID_BIOMASS,
-   CARD_ID_BLIGHT,
-   CARD_ID_CATASTROPHE,
-   CARD_ID_COLDSNAP,
-   CARD_ID_DISEASE,
-   CARD_ID_ECODIVERSITY,
-   CARD_ID_EVOLUTION,
-   CARD_ID_FECUNDITY,
-   CARD_ID_FERTILE,
-   CARD_ID_HABITAT,
-   CARD_ID_HIBERNATION,
-   CARD_ID_ICE_AGE,
-   CARD_ID_ICE_SHEET,
-   CARD_ID_IMMIGRANTS,
-   CARD_ID_INSTINCT,
-   CARD_ID_INTELLIGENCE,
-   CARD_ID_MASSEXODUS,
-   CARD_ID_METAMORPHOSIS,
-   CARD_ID_NICHE_BIOMES,
-   CARD_ID_NOCTURNAL,
-   CARD_ID_OMNIVORE,
-   CARD_ID_PARASITISM,
-   CARD_ID_PREDATOR,
-   CARD_ID_SYMBIOTIC,
-   CARD_ID_LAST
-} card_id_t;
+   CARD_DECK_PLANNING = 0,
+   CARD_DECK_TOWN,
+   CARD_DECK_CITY,
+   CARD_DECK_METROPOLIS,
+   CARD_DECK_LAST
+} card_deck_t;
+
+typedef enum
+{
+   CARD_TYPE_BUILD_PERMIT = 0,
+   CARD_TYPE_URBAN_RENEWAL,
+   CARD_TYPE_EVENT,
+   CARD_TYPE_CONTRACT,
+   CARD_TYPE_LAST
+} card_type_t;
 
 typedef enum
 {
@@ -84,11 +70,37 @@ typedef void card_mark_fn_t(card_mark_t mark);
 typedef struct
 {
    slnk_t slnk;
-   card_id_t id;     /*!< ID of card */
-   card_action_fn_t* use;
-   card_mark_fn_t* mark;
+   int id;
+   card_deck_t deck;
+   char* img_path;
+   //card_action_fn_t* use;
+   //card_mark_fn_t* mark;
    bool_t done_allowed;
 } card_t;
+
+typedef struct
+{
+   card_t card;
+   card_type_t type;
+   uint8_t zones;
+   uint8_t n_permits;
+   uint8_t payout; /* Wealth payout */
+   bool_t election;
+   bool_t event;
+} card_planning_t;
+
+typedef struct
+{
+   card_t card;
+   card_type_t type;
+   char* name;
+   uint8_t zone;
+   uint8_t size;
+   uint8_t payout; /* Prestige payout */
+   uint8_t vocation;
+   uint8_t vocation_value;
+   bool_t event;
+} card_contract_t;
 
 /* GLOBAL VARIABLES **********************************************************/
 
@@ -103,7 +115,16 @@ void cards_init(void);
 /*! \brief Create new card deck. */
 /*---------------------------------------------------------------------------*/
 void cards_create_deck(
-   slnk_t* p_deck        /*!< List head of deck */
+   slnk_t* p_deck,        /*!< List head of deck */
+   card_deck_t deck       /*!< Deck to create */
+   );
+
+/*---------------------------------------------------------------------------*/
+/*! \brief Prepare card deck (shuffle and setup). */
+/*---------------------------------------------------------------------------*/
+void cards_prepare_deck(
+   slnk_t* p_deck,        /*!< List head of deck */
+   card_deck_t deck       /*!< Deck to create */
    );
 
 /*---------------------------------------------------------------------------*/

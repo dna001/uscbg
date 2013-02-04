@@ -155,7 +155,6 @@ static void net_client_parse_command(int sock, void* data, int len)
       }
       case NET_CMD_SERVER_BOARD_CARDS_UPDATE:
       {
-#if 0
          int pos = 2;
          uint8_t id;
          int i;
@@ -163,12 +162,20 @@ static void net_client_parse_command(int sock, void* data, int len)
          {
             card_t* p_card;
             pos += pbuf_unpack(&p_data[pos], "b", &id);
-            p_card = cards_find(&core_get()->cards_head, id);
-            core_get()->board_cards[i] = p_card;
-            TRC_DBG(net_client, "card id %d (%p)", id, p_card);
+            p_card = cards_find(&core_get()->planning_deck_head, id);
+            core_get()->board_planning_cards[i] = p_card;
+            TRC_DBG(net_client, "Planning card id %d", id);
+         }
+         for (i=0;i<8;i++)
+         {
+            card_t* p_card;
+            pos += pbuf_unpack(&p_data[pos], "b", &id);
+            /* Todo: Add type check for town/city/metropolis */
+            p_card = cards_find(&core_get()->town_deck_head, id);
+            core_get()->board_contract_cards[i] = p_card;
+            TRC_DBG(net_client, "Contract card id %d", id);
          }
          main_hsm_evt(HSM_EVT_NET_UPDATE_BOARD_CARDS);
-#endif
          break;
       }
       case NET_CMD_SERVER_START_GAME:
