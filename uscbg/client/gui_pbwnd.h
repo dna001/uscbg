@@ -3,11 +3,11 @@ Copyright (c) 2013, All Rights Reserved.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
-/*! \file gui_piwnd.h
-\brief The Urban Sprawl gui_piwnd interface. */
+/*! \file gui_pbwnd.h
+\brief The Urban Sprawl gui_pbwnd interface. */
 /*---------------------------------------------------------------------------*/
-#ifndef GUI_PIWND_H
-#define GUI_PIWND_H
+#ifndef GUI_PBWND_H
+#define GUI_PBWND_H
 /* INCLUDE FILES *************************************************************/
 
 /* EXPORTED DEFINES **********************************************************/
@@ -21,12 +21,12 @@ Copyright (c) 2013, All Rights Reserved.
 /*---------------------------------------------------------------------------*/
 /*! \brief Initialize. */
 /*---------------------------------------------------------------------------*/
-void gui_piwnd_init(void);
+void gui_pbwnd_init(void);
 
 /*---------------------------------------------------------------------------*/
-/*! \brief Create playerinfo window. */
+/*! \brief Create playerboard window. */
 /*---------------------------------------------------------------------------*/
-gui_wnd_t* gui_piwnd_create(
+gui_wnd_t* gui_pbwnd_create(
    int x,
    int y,
    int w,
@@ -34,5 +34,5 @@ gui_wnd_t* gui_piwnd_create(
    gui_wgt_evt_cb_t* p_cb
 );
 
-#endif /* #ifndef GUI_PIWND_H */
+#endif /* #ifndef GUI_PBWND_H */
 /* END OF FILE ***************************************************************/

@@ -37,7 +37,7 @@ typedef enum
    CORE_STATE_INVESTMENTS,
    CORE_STATE_ACTIONS,
    CORE_STATE_ACTION_SPEND_AP,
-   CORE_STATE_ACTION_PLANNING_CARD,
+   CORE_STATE_ACTION_TAKE_CARD,
    CORE_STATE_ACTION_BUILD,
    CORE_STATE_ACTION_FAVOR,
    CORE_STATE_ACTION_END_OF_TURN,
@@ -170,7 +170,8 @@ typedef struct
    player_t* active_player;
    uint8_t current_round;
    uint8_t available_colors;
-   card_t* current_card;
+   card_contract_t* current_contract_card;
+   card_planning_t* current_planning_cards[5];
    bool_t last_round;
    int startup_buildings;
    core_net_send_fn_t* net_send;

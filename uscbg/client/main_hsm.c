@@ -23,6 +23,7 @@ Copyright (c) 2013, All Rights Reserved.
 #include "net_client.h"
 #include "gui.h"
 #include "gui_gbwnd.h"
+#include "gui_pbwnd.h"
 #include "gui_piwnd.h"
 #include "gui_logwnd.h"
 #include "cfg.h"
@@ -54,6 +55,7 @@ typedef struct
    gui_wnd_t* p_gpi[4];
    gui_wnd_t* p_glog;
    gui_wnd_t* p_gcmd;
+   gui_wnd_t* p_gpb;
 } main_hsm_t;            /*!< Main state machine states */
 
 /* LOCAL FUNCTION PROTOTYPES *************************************************/
@@ -99,7 +101,7 @@ static char* state_str[CORE_STATE_LAST] ={
    "Investments",
    "Actions",
    "Spend AP",
-   "Planning Card",
+   "Take Card",
    "Build",
    "Favor",
    "End of Turn",
@@ -207,6 +209,12 @@ STATIC hsm_msg_t const* main_entry_hnd(hsm_t* p_hsm, hsm_msg_t const* p_msg)
          gui_wnd_add(p_h->p_gpi[i]);
       }
       p_h->p_gpi[0]->visible = TRUE;
+      /* Player board window */
+      p_h->p_gpb = gui_pbwnd_create(glx_get()->w/2 - 525, 100, 1050, 488 + 23,
+         main_hsm_gui_event);
+      //TRC_DBG(main_hsm, "Caption offset: %d", p_h->p_gpb->p_caption->h);
+      gui_wnd_add(p_h->p_gpb);
+      p_h->p_gpb->visible = FALSE;
       /* Menu window */
       p_h->p_gmenu = gui_wnd_create(NULL, "Menu", (glx_get()->w-200)/2, 150,
          200, 20, 0);
@@ -561,6 +569,10 @@ STATIC hsm_msg_t const* main_waitnet_hnd(main_hsm_t* p_hsm,
       HSM_STATE_TRAN(p_hsm, &p_hsm->select_color);
       p_msg = HSM_MSG_PROCESSED;
       break;
+   case HSM_EVT_NET_SELECT_ACTION:
+      HSM_STATE_TRAN(p_hsm, &p_hsm->select_action);
+      p_msg = HSM_MSG_PROCESSED;
+      break;
    case HSM_EVT_NET_SELECT_BOARD_CARD:
       HSM_STATE_TRAN(p_hsm, &p_hsm->select_board_card);
       p_msg = HSM_MSG_PROCESSED;
@@ -705,7 +717,7 @@ STATIC hsm_msg_t const* main_select_board_card_hnd(main_hsm_t* p_hsm,
       break;
    }
    case HSM_EVT_MENU_BTN_DONE:
-      p_msg = HSM_MSG_PROCESSED;
+      //p_msg = HSM_MSG_PROCESSED;
       break;
    case HSM_EVT_EXIT:
       //core_board_cards_clear();
@@ -727,6 +739,8 @@ STATIC hsm_msg_t const* main_select_player_card_hnd(main_hsm_t* p_hsm,
    case HSM_EVT_ENTRY:
    {
       info_update("Select player card");
+      p_hsm->p_gpb->set_cfg(p_hsm->p_gpb, "update", core_get()->active_player);
+      p_hsm->p_gpb->visible = TRUE;
       //core_board_cards_mark();
       p_msg = HSM_MSG_PROCESSED;
       break;
@@ -739,10 +753,11 @@ STATIC hsm_msg_t const* main_select_player_card_hnd(main_hsm_t* p_hsm,
       break;
    }
    case HSM_EVT_MENU_BTN_DONE:
-      p_msg = HSM_MSG_PROCESSED;
+      //p_msg = HSM_MSG_PROCESSED;
       break;
    case HSM_EVT_EXIT:
       //core_board_cards_clear();
+      p_hsm->p_gpb->visible = FALSE;
       p_msg = HSM_MSG_PROCESSED;
       break;
    default:
@@ -869,11 +884,20 @@ static void main_hsm_gui_event(gui_widget_t* p_wgt, char* event)
          msg.evt = HSM_EVT_CARD;
          HSM_EVT(&main_hsm, &msg);
       }
-   /*} else if (p_wgt->p_owner == main_hsm.p_gpi[0]) {
+   } else if (strstr(p_wgt->name, "card") != NULL) {
       hsm_msg_t msg;
-      msg.evt = 0;
-      if (msg.evt != 0)
-         HSM_EVT(&main_hsm, &msg);*/
+      player_t* p_player = core_get()->active_player;
+      card_t* p_card = SLNK_NEXT(card_t, &p_player->cards_head);
+      int n = p_wgt->name[5] - 0x31;
+      TRC_DBG(main_hsm, "Card %d clicked on player board.", n);
+      while (n--)
+      {
+         p_card = SLNK_NEXT(card_t, p_card);
+      }
+      REQUIRE(p_card != NULL);
+      core_get()->card_selection = p_card->id;
+      msg.evt = HSM_EVT_CARD;
+      HSM_EVT(&main_hsm, &msg);
    }
 }
 

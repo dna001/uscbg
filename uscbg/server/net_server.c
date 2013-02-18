@@ -90,11 +90,22 @@ void net_server_send_cmd(int sock, int cmd, void* data)
       case NET_CMD_SERVER_PLAYER_UPDATE:
       { /* Used for any other player updates during the game */
          player_t* p_player = (player_t*)data;
+         card_t* p_card = SLNK_NEXT(card_t, &p_player->cards_head);
+         int i;
          len += pbuf_pack(&packet[2], "w", p_player->id);
          len += pbuf_pack(&packet[len], "bbbwww", p_player->color,
             p_player->ap, p_player->politicians, p_player->vocations,
             p_player->wealth, p_player->prestige);
          /* Cards */
+         for (i=0;i<6;i++)
+         {
+            uint8_t id = (p_card)?p_card->id:0;
+            len += pbuf_pack(&packet[len], "b", id);
+            if (p_card)
+            {
+               p_card = SLNK_NEXT(card_t, p_card);
+            }
+         }
          break;
       }
       case NET_CMD_SERVER_BOARD_CARDS_UPDATE:

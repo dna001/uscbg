@@ -330,11 +330,15 @@ void core_action_done(void)
 void core_invest(void)
 {
    player_t* p_player = core.active_player;
-   int i;
-   int wealth = 0;
+   card_planning_t* p_card = (card_planning_t*)cards_draw(
+      &core.active_player->cards_head, core.card_selection);
+
+   REQUIRE(p_card != NULL);
    /* Discard selected planning card for wealth */
+   p_player->wealth += p_card->payout;
+   SLNK_ADD(&core.planning_discard_head, p_card);
    core_net_broadcast(NET_CMD_SERVER_PLAYER_UPDATE, core.active_player);
-   core_log(p_player, "recieved %d wealth", wealth);
+   core_log(p_player, "recieved %d wealth", p_card->payout);
 }
 
 /*-----------------------------------------------------------------------------
@@ -966,6 +970,16 @@ static void core_prepare_players(void)
       if (core.n_players == 3) p_player->wealth = 27;
       if (core.n_players == 4) p_player->wealth = 21;
       p_player->prestige = 0;
+      /* Draw initial planning cards */
+      for (i=0;i<n+1;i++)
+      {
+         card_t* p_card = cards_draw(&core.planning_deck_head, -1);
+         SLNK_ADD(&p_player->cards_head, p_card);
+      }
+      /* Test */
+      p_player->vocations = 0xA5;
+      p_player->politicians = (1u << POLITICIAN_MAYOR) |
+         (1u << POLITICIAN_POLICE_CHIEF);
       core_dbg_dump_player_data(p_player);
       core_net_broadcast(NET_CMD_SERVER_PLAYER_UPDATE, p_player);
       n++;

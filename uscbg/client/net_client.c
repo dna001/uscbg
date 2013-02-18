@@ -140,8 +140,10 @@ static void net_client_parse_command(int sock, void* data, int len)
       case NET_CMD_SERVER_PLAYER_UPDATE:
       { /* Used for any other player updates during the game */
          player_t* p_player;
+         card_t* p_card = SLNK_NEXT(card_t, &p_player->cards_head);
          int id;
          int pos = 2;
+         int i;
          pos += pbuf_unpack(&p_data[2], "w", &id);
          p_player = core_find_player(id);
          REQUIRE(p_player != NULL);
@@ -149,6 +151,21 @@ static void net_client_parse_command(int sock, void* data, int len)
             &p_player->ap, &p_player->politicians, &p_player->vocations,
             &p_player->wealth, &p_player->prestige);
          /* Cards */
+         while ((p_card = cards_draw(&p_player->cards_head, -1)) != NULL)
+         {
+            SLNK_ADD(&core_get()->planning_deck_head, p_card);
+         }
+         for (i=0;i<6;i++)
+         {
+            uint8_t id;
+            pos += pbuf_unpack(&p_data[pos], "b", &id);
+            if (id > 0)
+            {
+               card_t* p_card = cards_draw(&core_get()->planning_deck_head, id);
+               REQUIRE(p_card != NULL);
+               SLNK_ADD(&p_player->cards_head, p_card);
+            }
+         }
          core_dbg_dump_player_data(p_player);
          main_hsm_evt(HSM_EVT_NET_UPDATE_PLAYERS);
          break;
@@ -187,6 +204,11 @@ static void net_client_parse_command(int sock, void* data, int len)
       {
          pbuf_unpack(&p_data[2], "b", &core_get()->available_colors);
          main_hsm_evt(HSM_EVT_NET_SELECT_COLOR);
+         break;
+      }
+      case NET_CMD_SERVER_SELECT_ACTION:
+      {
+         main_hsm_evt(HSM_EVT_NET_SELECT_ACTION);
          break;
       }
       case NET_CMD_SERVER_BLOCK_UPDATE:

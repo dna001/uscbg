@@ -8,6 +8,7 @@ set(USCBG_CLIENT_SRCS
   gui_gbwnd.c
   gui_log.c
   gui_logwnd.c
+  gui_pbwnd.c
   gui_piwnd.c
   main_hsm.c
   net_client.c

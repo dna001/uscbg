@@ -245,7 +245,8 @@ STATIC hsm_msg_t const* srv_select_color_hnd(srv_hsm_t* p_hsm,
          /* Update phase */
          core_get()->state = CORE_STATE_SETUP;
          net_server_broadcast_cmd(NET_CMD_SERVER_PHASE_UPDATE, NULL);
-         HSM_STATE_TRAN(p_hsm, &p_hsm->setup);
+         //HSM_STATE_TRAN(p_hsm, &p_hsm->setup);
+         HSM_STATE_TRAN(p_hsm, &p_hsm->investments); // Temporary
       }
       else
       {
@@ -319,6 +320,9 @@ STATIC hsm_msg_t const* srv_setup_hnd(srv_hsm_t* p_hsm,
       }
       else
       {
+         /* Update phase */
+         core_get()->state = CORE_STATE_INVESTMENTS;
+         net_server_broadcast_cmd(NET_CMD_SERVER_PHASE_UPDATE, NULL);
          HSM_STATE_TRAN(p_hsm, &p_hsm->investments);
       }
       p_msg = HSM_MSG_PROCESSED;
@@ -381,6 +385,9 @@ STATIC hsm_msg_t const* srv_select_action_hnd(srv_hsm_t* p_hsm,
    switch(HSM_EVT_GET(p_msg))
    {
    case HSM_EVT_ENTRY:
+      /* Update phase */
+      core_get()->state = CORE_STATE_ACTIONS;
+      net_server_broadcast_cmd(NET_CMD_SERVER_PHASE_UPDATE, NULL);
       net_server_broadcast_cmd(NET_CMD_SERVER_ACTIVE_PLAYER, NULL);
       net_server_send_cmd(p_core->active_player->id,
          NET_CMD_SERVER_SELECT_ACTION, NULL);
@@ -422,6 +429,9 @@ STATIC hsm_msg_t const* srv_action_take_card_hnd(srv_hsm_t* p_hsm,
    switch(HSM_EVT_GET(p_msg))
    {
    case HSM_EVT_ENTRY:
+      /* Update phase */
+      core_get()->state = CORE_STATE_ACTION_TAKE_CARD;
+      net_server_broadcast_cmd(NET_CMD_SERVER_PHASE_UPDATE, NULL);
       net_server_broadcast_cmd(NET_CMD_SERVER_ACTIVE_PLAYER, NULL);
       net_server_send_cmd(p_core->active_player->id,
          NET_CMD_SERVER_SELECT_BOARD_CARD, NULL);
@@ -429,6 +439,12 @@ STATIC hsm_msg_t const* srv_action_take_card_hnd(srv_hsm_t* p_hsm,
       break;
    case HSM_EVT_NET_SELECT_BOARD_CARD:
       core_action_take_card();
+      HSM_STATE_TRAN(p_hsm, &p_hsm->select_action);
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   case HSM_EVT_NET_DONE:
+      //HSM_STATE_TRAN(p_hsm, &p_hsm->end_of_turn);
+      p_msg = HSM_MSG_PROCESSED;
       break;
    case HSM_EVT_EXIT:
       p_msg = HSM_MSG_PROCESSED;
@@ -449,14 +465,28 @@ STATIC hsm_msg_t const* srv_action_build_hnd(srv_hsm_t* p_hsm,
    switch(HSM_EVT_GET(p_msg))
    {
    case HSM_EVT_ENTRY:
+      core_get()->state = CORE_STATE_ACTION_BUILD;
+      net_server_broadcast_cmd(NET_CMD_SERVER_PHASE_UPDATE, NULL);
       net_server_broadcast_cmd(NET_CMD_SERVER_ACTIVE_PLAYER, NULL);
       net_server_send_cmd(p_core->active_player->id,
          NET_CMD_SERVER_SELECT_BOARD_CARD, NULL);
       p_msg = HSM_MSG_PROCESSED;
       break;
    case HSM_EVT_NET_SELECT_BOARD_CARD:
-      core_action_build();
+      net_server_send_cmd(p_core->active_player->id,
+         NET_CMD_SERVER_SELECT_PLAYER_CARD, NULL);
+      p_msg = HSM_MSG_PROCESSED;
       break;
+   case HSM_EVT_NET_SELECT_PLAYER_CARD:
+   {
+      card_t* p_card = cards_find(&p_core->active_player->cards_head,
+         p_core->card_selection);
+      REQUIRE(p_card != NULL);
+      core_action_build();
+      HSM_STATE_TRAN(p_hsm, &p_hsm->select_action);
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   }
    case HSM_EVT_EXIT:
       p_msg = HSM_MSG_PROCESSED;
       break;
