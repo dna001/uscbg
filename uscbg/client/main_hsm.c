@@ -26,6 +26,7 @@ Copyright (c) 2013, All Rights Reserved.
 #include "gui_pbwnd.h"
 #include "gui_piwnd.h"
 #include "gui_logwnd.h"
+#include "gui_cardwnd.h"
 #include "cfg.h"
 #include "main_hsm.h"
 
@@ -35,18 +36,19 @@ Copyright (c) 2013, All Rights Reserved.
 typedef struct
 {
    hsm_t super;
-   hsm_state_t mainmenu;                  /*!< Main Menu */
-   hsm_state_t newgame;                   /*!< New game menu */
-   hsm_state_t lobby;                     /*!< Lobby */
-   hsm_state_t game;                      /*!< Game */
-      hsm_state_t select_color;           /*!< Select color */
-      hsm_state_t select_action;          /*!< Select action */
-      hsm_state_t select_board_card;      /*!< Select board card */
-      hsm_state_t select_player_card;     /*!< Select player card */
-      hsm_state_t select_board_lot;       /*!< Select board lot */
-      hsm_state_t waitnet;                /*!< Wait for net event */
-   hsm_state_t loadgame;                  /*!< Load Game */
-   hsm_state_t savegame;                  /*!< Save Game */
+   hsm_state_t mainmenu;                    /*!< Main Menu */
+   hsm_state_t newgame;                     /*!< New game menu */
+   hsm_state_t lobby;                       /*!< Lobby */
+   hsm_state_t game;                        /*!< Game */
+      hsm_state_t select_color;             /*!< Select color */
+      hsm_state_t select_action;            /*!< Select action */
+      hsm_state_t select_board_card;        /*!< Select board card */
+      hsm_state_t select_player_card;       /*!< Select player card */
+      hsm_state_t select_building_rotation; /*!< Select building rotation */
+      hsm_state_t select_board_lot;         /*!< Select board lot */
+      hsm_state_t waitnet;                  /*!< Wait for net event */
+   hsm_state_t loadgame;                    /*!< Load Game */
+   hsm_state_t savegame;                    /*!< Save Game */
    bool_t started;
    gui_wnd_t* p_gmenu;
    gui_wnd_t* p_gb;
@@ -56,21 +58,34 @@ typedef struct
    gui_wnd_t* p_glog;
    gui_wnd_t* p_gcmd;
    gui_wnd_t* p_gpb;
+   gui_wnd_t* p_gac;
 } main_hsm_t;            /*!< Main state machine states */
 
 /* LOCAL FUNCTION PROTOTYPES *************************************************/
 STATIC void main_hsm_ctor(main_hsm_t* p_me);
 STATIC hsm_evt_hnd_t main_entry_hnd;
-STATIC hsm_msg_t const* main_mainmenu_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_newgame_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_lobby_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_game_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_waitnet_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_select_color_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_select_action_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_select_board_card_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_select_player_card_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
-STATIC hsm_msg_t const* main_select_board_lot_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_mainmenu_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_newgame_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_lobby_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_game_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_waitnet_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_select_color_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_select_action_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_select_board_card_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_select_player_card_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_select_building_rotation_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
+STATIC hsm_msg_t const* main_select_board_lot_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg);
 //STATIC hsm_msg_t const* main_loadgame_hnd(main_hsm_t* p_hsm, hsm_msg_t const* p_msg);
 
 STATIC void mainmenu_btn_add(const char* name, int evt, int pos);
@@ -177,6 +192,8 @@ STATIC void main_hsm_ctor(main_hsm_t* p_me)
       main_select_board_card_hnd, &p_me->game);
    HSM_STATE_CTOR(&p_me->select_player_card, "select_player_card",
       main_select_player_card_hnd, &p_me->game);
+   HSM_STATE_CTOR(&p_me->select_building_rotation, "select_building_rotation",
+      main_select_building_rotation_hnd, &p_me->game);
    HSM_STATE_CTOR(&p_me->select_board_lot, "select_board_lot",
       main_select_board_lot_hnd, &p_me->game);
 }
@@ -195,16 +212,15 @@ STATIC hsm_msg_t const* main_entry_hnd(hsm_t* p_hsm, hsm_msg_t const* p_msg)
       int i;
       /* Create gui components */
       /* Game board */
-      p_h->p_gb = gui_gbwnd_create();
+      p_h->p_gb = gui_gbwnd_create(0, 0, glx_get()->w, glx_get()->h - 150,
+         main_hsm_gui_event);
       REQUIRE(p_h->p_gb != NULL);
-      p_wgt = p_h->p_gb->find_widget(p_h->p_gb, "board");
-      p_wgt->evt_cb = main_hsm_gui_event;
       gui_wnd_add(p_h->p_gb);
       /* Player info windows */
       for (i=0;i<4;i++)
       {
-         p_h->p_gpi[i] = gui_piwnd_create(glx_get()->w - 100, 100*i,
-            100, 90, main_hsm_gui_event);
+         p_h->p_gpi[i] = gui_piwnd_create(glx_get()->w - 400 + 100*i,
+            glx_get()->h - 130, 100, 130, main_hsm_gui_event);
          //p_h->p_gpi[i]->visible = FALSE;
          gui_wnd_add(p_h->p_gpi[i]);
       }
@@ -215,6 +231,12 @@ STATIC hsm_msg_t const* main_entry_hnd(hsm_t* p_hsm, hsm_msg_t const* p_msg)
       //TRC_DBG(main_hsm, "Caption offset: %d", p_h->p_gpb->p_caption->h);
       gui_wnd_add(p_h->p_gpb);
       p_h->p_gpb->visible = FALSE;
+      /* Active card window */
+      p_h->p_gac = gui_cardwnd_create(glx_get()->w - 508, glx_get()->h - 150,
+         108, 150, main_hsm_gui_event);
+      //TRC_DBG(main_hsm, "Caption offset: %d", p_h->p_gpb->p_caption->h);
+      gui_wnd_add(p_h->p_gac);
+      p_h->p_gac->visible = TRUE;
       /* Menu window */
       p_h->p_gmenu = gui_wnd_create(NULL, "Menu", (glx_get()->w-200)/2, 150,
          200, 20, 0);
@@ -248,30 +270,30 @@ STATIC hsm_msg_t const* main_entry_hnd(hsm_t* p_hsm, hsm_msg_t const* p_msg)
       p_wgt->set_cfg(p_wgt, "center", (void*)FALSE);
       p_h->p_gstat->add_widget(p_h->p_gstat, p_wgt);
       /* Log window */
-      p_h->p_glog = gui_logwnd_create(10, glx_get()->h - 150,
-         glx_get()->w - 600, 140, main_hsm_gui_event);
+      p_h->p_glog = gui_logwnd_create(0, glx_get()->h - 150,
+         glx_get()->w - 508, 150, main_hsm_gui_event);
       REQUIRE(p_h->p_glog != NULL);
       gui_wnd_add(p_h->p_glog);
       /* Command window */
-      p_h->p_gcmd = gui_wnd_create(NULL, "CommandMenu", (glx_get()->w - 200),
-         glx_get()->h - 20, 200, 20, 0);
+      p_h->p_gcmd = gui_wnd_create(NULL, "CommandMenu", (glx_get()->w - 400),
+         glx_get()->h - 150, 400, 20, 0);
       REQUIRE(p_h->p_gcmd != NULL);
-      p_wgt = gui_widget_create("done", "button", 0, 0, 50, 20);
+      p_wgt = gui_widget_create("done", "button", 0, 0, 100, 20);
       p_wgt->set_cfg(p_wgt, "cb_fn", main_hsm_gui_event);
       p_wgt->set_cfg(p_wgt, "text", (void*)"Done");
       p_wgt->set_cfg(p_wgt, "data", (void*)HSM_EVT_MENU_BTN_DONE);
       p_h->p_gcmd->add_widget(p_h->p_gcmd, p_wgt);
-      p_wgt = gui_widget_create("center", "button", 50, 0, 50, 20);
+      p_wgt = gui_widget_create("back", "button", 100, 0, 100, 20);
       p_wgt->set_cfg(p_wgt, "cb_fn", main_hsm_gui_event);
-      p_wgt->set_cfg(p_wgt, "text", (void*)"Center");
-      p_wgt->set_cfg(p_wgt, "data", (void*)HSM_EVT_MENU_BTN_CENTER);
+      p_wgt->set_cfg(p_wgt, "text", (void*)"Back");
+      p_wgt->set_cfg(p_wgt, "data", (void*)HSM_EVT_MENU_BTN_BACK);
       p_h->p_gcmd->add_widget(p_h->p_gcmd, p_wgt);
-      p_wgt = gui_widget_create("coordinates", "button", 100, 0, 50, 20);
+      p_wgt = gui_widget_create("help", "button", 200, 0, 100, 20);
       p_wgt->set_cfg(p_wgt, "cb_fn", main_hsm_gui_event);
-      p_wgt->set_cfg(p_wgt, "text", (void*)"Coords");
+      p_wgt->set_cfg(p_wgt, "text", (void*)"Help");
       p_wgt->set_cfg(p_wgt, "data", (void*)HSM_EVT_MENU_BTN_COORDS);
       p_h->p_gcmd->add_widget(p_h->p_gcmd, p_wgt);
-      p_wgt = gui_widget_create("exit", "button", 150, 0, 50, 20);
+      p_wgt = gui_widget_create("exit", "button", 300, 0, 100, 20);
       p_wgt->set_cfg(p_wgt, "cb_fn", main_hsm_gui_event);
       p_wgt->set_cfg(p_wgt, "text", (void*)"Exit");
       p_wgt->set_cfg(p_wgt, "data", (void*)HSM_EVT_MENU_BTN_EXIT);
@@ -705,7 +727,7 @@ STATIC hsm_msg_t const* main_select_board_card_hnd(main_hsm_t* p_hsm,
    case HSM_EVT_ENTRY:
    {
       info_update("Select board card");
-      //core_board_cards_mark();
+      core_board_cards_mark();
       p_msg = HSM_MSG_PROCESSED;
       break;
    }
@@ -720,7 +742,7 @@ STATIC hsm_msg_t const* main_select_board_card_hnd(main_hsm_t* p_hsm,
       //p_msg = HSM_MSG_PROCESSED;
       break;
    case HSM_EVT_EXIT:
-      //core_board_cards_clear();
+      core_board_cards_clear();
       p_msg = HSM_MSG_PROCESSED;
       break;
    default:
@@ -758,6 +780,48 @@ STATIC hsm_msg_t const* main_select_player_card_hnd(main_hsm_t* p_hsm,
    case HSM_EVT_EXIT:
       //core_board_cards_clear();
       p_hsm->p_gpb->visible = FALSE;
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   default:
+      break;
+   }
+   return p_msg;
+}
+
+/*-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------*/
+STATIC hsm_msg_t const* main_select_building_rotation_hnd(main_hsm_t* p_hsm,
+   hsm_msg_t const* p_msg)
+{
+   switch(HSM_EVT_GET(p_msg))
+   {
+   case HSM_EVT_ENTRY:
+   {
+      int n = 0;
+      info_update("Select building rotation");
+      mainmenu_btn_add("0 degrees", HSM_EVT_MENU_BTN_1, n++);
+      mainmenu_btn_add("90 degrees", HSM_EVT_MENU_BTN_2, n++);
+      mainmenu_btn_add("180 degrees", HSM_EVT_MENU_BTN_3, n++);
+      mainmenu_btn_add("270 degrees", HSM_EVT_MENU_BTN_4, n++);
+      p_hsm->p_gmenu->visible = TRUE;
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   }
+   case HSM_EVT_MENU_BTN_1:
+   case HSM_EVT_MENU_BTN_2:
+   case HSM_EVT_MENU_BTN_3:
+   case HSM_EVT_MENU_BTN_4:
+   {
+      core_get()->rotation_selection = HSM_EVT_GET(p_msg) - HSM_EVT_MENU_BTN_1;
+      net_client_send_cmd(NET_CMD_CLIENT_SELECT_BUILDING_ROTATION,
+         (HSM_EVT_GET(p_msg) - HSM_EVT_MENU_BTN_1));
+      HSM_STATE_TRAN(p_hsm, &p_hsm->waitnet);
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   }
+   case HSM_EVT_EXIT:
+      mainmenu_reset();
+      p_hsm->p_gmenu->visible = FALSE;
       p_msg = HSM_MSG_PROCESSED;
       break;
    default:

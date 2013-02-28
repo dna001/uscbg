@@ -172,12 +172,11 @@ void gui_gbwnd_init(void)
 /* LOCAL FUNCTIONS ***********************************************************/
 /*-----------------------------------------------------------------------------
 -----------------------------------------------------------------------------*/
-gui_wnd_t* gui_gbwnd_create(void)
+gui_wnd_t* gui_gbwnd_create(int x, int y, int w, int h, gui_wgt_evt_cb_t* p_cb)
 {
    gui_wnd_t* p_wnd;
    gui_widget_t* p_wgt;
-   p_wnd = gui_wnd_create(NULL, "gbwnd", 0, 0, glx_get()->w,
-      glx_get()->h, 0);
+   p_wnd = gui_wnd_create(NULL, "gbwnd", x, y, w, h, 0);
    REQUIRE(p_wnd != NULL);
    p_wnd->bg_color = GLX_RGBA(0x00, 0x00, 0x00, 0xFF);
    //p_wnd->set_cfg(p_wnd, "bg_image", "data/wood_bg.png");
@@ -185,6 +184,7 @@ gui_wnd_t* gui_gbwnd_create(void)
    p_wgt = gui_widget_create("board", "board", 0, 0,
       p_wnd->w, p_wnd->h);
    REQUIRE(p_wgt != NULL);
+   p_wgt->evt_cb = p_cb;
    p_wnd->add_widget(p_wnd, p_wgt);
    return p_wnd;
 }
@@ -323,18 +323,15 @@ static void gui_board_draw(gui_widget_t* p_me)
    gui_board_t* p_board = (gui_board_t*)p_me;
    //glx_rect_t srcrect;
    glx_rect_t dstrect;
-   glx_image_t* p_img = NULL;
-   int i;
+
+   /* Offset and zoom */
    glPushMatrix();
    glTranslatef(-p_board->offset_x, -p_board->offset_y, 0);
    glScalef(p_board->zoom, p_board->zoom, 1.0f);
    /* Draw game board */
-   /*glx_rect_set(&srcrect, p_board->offset_x/p_board->zoom,
-      p_board->offset_y/p_board->zoom, p_me->w/p_board->zoom,
-      p_me->h/p_board->zoom);*/
    glx_rect_set(&dstrect, 0, 0, p_board->gb_img->w, p_board->gb_img->h);
    glx_drawimage(p_board->gb_img, NULL, &dstrect);
-   /* Draw tiles, species and domination markers on "earth" */
+   /* Draw blocks */
    gui_board_draw_blocks(p_me, FALSE);
    //glx_rect_set(&dstrect, p_me->x + 40 + 80*i, p_me->y, 1, 480);
    //glx_drawrect(&dstrect, GLX_RGBA(0x80, 0x80, 0x80, 0xff));
@@ -447,10 +444,10 @@ static void gui_board_draw_cards(gui_widget_t* p_me, bool_t select)
       {
          glx_drawimage(p_img, NULL, &dstrect);
       }
-      /*if (core_get()->board_cards_mark)
+      if (core_get()->board_cards_marked[i])
       {
          glx_drawrect(&dstrect, GLX_RGBA(0x00, 0x80, 0x0, 0x40));
-      }*/
+      }
    }
    for (i=0;i<8;i++)
    {
@@ -464,10 +461,10 @@ static void gui_board_draw_cards(gui_widget_t* p_me, bool_t select)
       {
          glx_drawimage(p_img, NULL, &dstrect);
       }
-      /*if (core_get()->board_cards_mark)
+      if (core_get()->board_cards_marked[5+i])
       {
          glx_drawrect(&dstrect, GLX_RGBA(0x00, 0x80, 0x0, 0x40));
-      }*/
+      }
    }
 }
 
@@ -621,21 +618,31 @@ static void gui_board_handle_mouse(gui_widget_t* p_me, gfw_evt_t* p_evt)
          TRC_DBG(gui_gbwnd, "lot %d, block %)", id-1, (id-1)/4);
          gui_send_event(p_me, "board_lot");
       }
-#if 0
       if (id < 0)
       {
          id = gui_board_handle_selection(p_me, x, y,
             gui_board_draw_cards);
          if (id > 0)
          {
-            card_t* p_card = core_get()->board_cards[id-1];
+            card_t* p_card = NULL;
+            if (id <= 5)
+            {
+               p_card = core_get()->board_planning_cards[id-1];
+            }
+            else if (id <= 13)
+            {
+               p_card = core_get()->board_contract_cards[id-6];
+            }
+            else
+            {
+               ASSERT(FALSE);
+            }
             core_get()->card_selection = id-1;
-            core_get()->current_card = p_card;
+            //core_get()->current_card = p_card;
             TRC_DBG(gui_gbwnd, "board card id %d", id-1);
             gui_send_event(p_me, "card");
          }
       }
-#endif
    }
    if ((p_evt->type == SDL_MOUSEBUTTONDOWN) &&
        (p_evt->button.button == SDL_BUTTON_RIGHT))

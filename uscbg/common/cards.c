@@ -363,7 +363,7 @@ char* cards_get_image_path(card_t* p_card)
 -----------------------------------------------------------------------------*/
 static void cards_create_planning_deck(slnk_t* p_deck)
 {
-   card_build_permit_res_t* p_res = cards_build_permit_res;
+   const card_build_permit_res_t* p_res = &cards_build_permit_res[0];
    card_planning_t* p_card;
    int id = 1;
    int i;
@@ -394,7 +394,7 @@ static void cards_create_planning_deck(slnk_t* p_deck)
 -----------------------------------------------------------------------------*/
 static void cards_create_contract_deck(slnk_t* p_deck, card_deck_t deck)
 {
-   card_contract_res_t* p_res;
+   const card_contract_res_t* p_res;
    card_contract_t* p_card;
    int id = 1;
 

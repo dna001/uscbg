@@ -183,6 +183,7 @@ typedef struct
    uint8_t color_selection;
    uint8_t action_selection;
    uint8_t card_selection;
+   uint8_t rotation_selection;
    uint8_t board_lot_selection;
 } core_t;
 

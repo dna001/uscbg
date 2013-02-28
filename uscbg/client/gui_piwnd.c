@@ -53,9 +53,9 @@ gui_wnd_t* gui_piwnd_create(int x, int y, int w, int h, gui_wgt_evt_cb_t* p_cb)
    p_wnd = gui_wnd_create(NULL, "piwnd", x, y, w, h, 0);
    REQUIRE(p_wnd != NULL);
    p_wnd->set_cfg = gui_piwnd_set_cfg;
-   p_wnd->bg_color = GLX_RGBA(0x00, 0x00, 0x00, 0x40);
+   p_wnd->bg_color = GLX_RGBA(0x40, 0x40, 0x40, 0xFF);
    p_wnd->border = TRUE;
-   p_wnd->border_color = GLX_RGBA(0x00, 0x00, 0x00, 0xFF);
+   p_wnd->border_color = GLX_RGBA(0xC0, 0xC0, 0xC0, 0xFF);
    /* Name */
    p_wgt = gui_widget_create("name_text", "text", 5, 5, 90, 20);
    p_wgt->set_cfg(p_wgt, "border", (void*)FALSE);
@@ -79,6 +79,13 @@ gui_wnd_t* gui_piwnd_create(int x, int y, int w, int h, gui_wgt_evt_cb_t* p_cb)
    p_wgt->set_cfg(p_wgt, "edit", (void*)FALSE);
    p_wgt->set_cfg(p_wgt, "text_color", (void*)GLX_RGBA(0xFF, 0xFF, 0xFF, 0xFF));
    p_wgt->set_cfg(p_wgt, "text", "P: 0");
+   p_wnd->add_widget(p_wnd, p_wgt);
+   /* Action points */
+   p_wgt = gui_widget_create("ap_text", "text", 50, 55, 50, 20);
+   p_wgt->set_cfg(p_wgt, "border", (void*)FALSE);
+   p_wgt->set_cfg(p_wgt, "edit", (void*)FALSE);
+   p_wgt->set_cfg(p_wgt, "text_color", (void*)GLX_RGBA(0xFF, 0xFF, 0xFF, 0xFF));
+   p_wgt->set_cfg(p_wgt, "text", "AP: 0");
    p_wnd->add_widget(p_wnd, p_wgt);
    return p_wnd;
 }
@@ -123,6 +130,10 @@ static void gui_piwnd_set_cfg(gui_wnd_t* p_me, char* cfg, void* data)
       p_wgt = p_me->find_widget(p_me, "prestige_text");
       REQUIRE(p_wgt != NULL);
       sprintf(txt, "P: %d", p_player->prestige);
+      p_wgt->set_cfg(p_wgt, "text", txt);
+      p_wgt = p_me->find_widget(p_me, "ap_text");
+      REQUIRE(p_wgt != NULL);
+      sprintf(txt, "AP: %d", p_player->ap);
       p_wgt->set_cfg(p_wgt, "text", txt);
       if (p_player == SLNK_NEXT(player_t, &core_get()->players_head))
       { /* Red border if this player */

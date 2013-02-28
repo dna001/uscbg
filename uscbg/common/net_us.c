@@ -32,6 +32,7 @@ char* net_cmd_to_str[NET_CMD_LAST] =
    "Server Start Game",
    "Server Select Color",
    "Server Select Action",
+   "Server Select Building Rotation",
    "Server Select Board Lot",
    "Server Select Board Card",
    "Server Select Player Card",
@@ -50,12 +51,14 @@ char* net_cmd_to_str[NET_CMD_LAST] =
    "Client Save Game",
    "Client Select Color",
    "Client Select Action",
+   "Client Select Building Rotation",
    "Client Select Board Lot",
    "Client Select Board Card",
    "Client Select Player Card",
    "Client Select Card Choice",
    "Client Pass",
-   "Client Done"
+   "Client Done",
+   "Client Back"
 };
 
 /* GLOBAL FUNCTIONS **********************************************************/

@@ -154,6 +154,8 @@ void net_server_send_cmd(int sock, int cmd, void* data)
       }
       case NET_CMD_SERVER_SELECT_ACTION:
          break;
+      case NET_CMD_SERVER_SELECT_BUILDING_ROTATION:
+         break;
       case NET_CMD_SERVER_SELECT_BOARD_LOT:
          break;
       case NET_CMD_SERVER_SELECT_BOARD_CARD:
@@ -300,6 +302,12 @@ static void net_server_parse_command(int sock, void* data, int len)
          srv_hsm_evt(HSM_EVT_NET_SELECT_ACTION);
          break;
       }
+      case NET_CMD_CLIENT_SELECT_BUILDING_ROTATION:
+      {
+         pbuf_unpack(&p_data[2], "b", &core_get()->rotation_selection);
+         srv_hsm_evt(HSM_EVT_NET_SELECT_BUILDING_ROTATION);
+         break;
+      }
       case NET_CMD_CLIENT_SELECT_BOARD_LOT:
       {
          pbuf_unpack(&p_data[2], "b", &core_get()->board_lot_selection);
@@ -337,6 +345,11 @@ static void net_server_parse_command(int sock, void* data, int len)
          core_log(p_core->active_player, "done");
          //p_core->active_player->done = TRUE;
          srv_hsm_evt(HSM_EVT_NET_DONE);
+         break;
+      }
+      case NET_CMD_CLIENT_BACK:
+      {
+         srv_hsm_evt(HSM_EVT_NET_BACK);
          break;
       }
       default:

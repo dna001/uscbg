@@ -76,6 +76,10 @@ static const vocation_t vocation_convert_table[24] = {
    VOCATION_PUBLIC_SERVICE, VOCATION_MEDIA
 };
 
+const uint8_t contract_cards_ap_cost[8] = {
+   1, 2, 3, 4, 5, 6, 5, 4
+};
+
 static core_t core;
 
 /* GLOBAL CONSTANTS / VARIABLES **********************************************/
@@ -190,7 +194,7 @@ bool_t core_newgame(bool_t load)
          core.board_planning_cards[i] = cards_draw(&core.planning_deck_head,
                                                    -1);
       }
-      for (i=0;i<5;i++)
+      for (i=0;i<6;i++)
       {
          core.board_contract_cards[i] = cards_draw(&core.town_deck_head,
                                                    -1);
@@ -346,10 +350,30 @@ void core_invest(void)
 void core_action_take_card(void)
 {
    player_t* p_player = core.active_player;
+   card_t* p_card = NULL;
+   int ap = 0;
    int i;
    /* Add selected card to player card list (if planning card) or favor
       (if contract card). */
-   //core_log(p_player, "took card %d for %d ap(s)", card, ap);
+   REQUIRE(core.card_selection < 13);
+   if (core.card_selection < 5)
+   {
+      p_card = core.board_planning_cards[core.card_selection];
+      core.board_planning_cards[core.card_selection] = NULL;
+      ap = core.card_selection + 1;
+   }
+   else
+   {
+      p_card = core.board_contract_cards[core.card_selection - 5];
+      core.board_contract_cards[core.card_selection - 5] = NULL;
+      ap = contract_cards_ap_cost[core.card_selection - 5];
+   }
+   REQUIRE(p_card != NULL);
+   SLNK_ADD(&p_player->cards_head, p_card);
+   p_player->ap -= ap;
+   core_net_broadcast(NET_CMD_SERVER_BOARD_CARDS_UPDATE, NULL);
+   core_net_broadcast(NET_CMD_SERVER_PLAYER_UPDATE, core.active_player);
+   core_log(p_player, "took card %d for %d ap(s)", p_card->id, ap);
 }
 
 /*-----------------------------------------------------------------------------
@@ -842,36 +866,35 @@ void core_board_lots_clear(void)
 -----------------------------------------------------------------------------*/
 void core_board_cards_mark(void)
 {
+   player_t* p_player = core.active_player;
    int i;
+
    switch (core.state)
    {
-#if 0
-   case CORE_STATE_ACTION_ABUNDANCE:
-   { /* Mark all "empty" elements connected to at least one tile */
-      for (i=0;i<MAX_BOARD_TILES;i++)
+   case CORE_STATE_ACTION_TAKE_CARD:
+   { /* Mark all planning cards with ap cost <= player ap */
+      for (i=0;i<5;i++)
       {
-         tile_t* p_tile = &core.board_tiles[i];
-         if (p_tile->terrain > TERRAIN_NONE)
+         if ((p_player->ap >= (i + 1)) &&
+             (core.board_planning_cards[i] != NULL))
          {
-            int j;
-            for (j=0;j<6;j++)
-            {
-               element_t* p_element;
-               p_element = core_find_element(p_tile->x + element_dir[j].x,
-                  p_tile->y + element_dir[j].y);
-               REQUIRE(p_element != NULL);
-               if (p_element->element == ELEMENT_NONE)
-               {
-                  p_element->marked = TRUE;
-                  TRC_DBG(core, "Marked element at %d,%d", p_element->x,
-                     p_element->y);
-               }
-            }
+            core.board_cards_marked[i] = TRUE;
          }
       }
       break;
    }
-#endif
+   case CORE_STATE_ACTION_BUILD:
+   { /* Mark all contract cards with ap cost <= player ap */
+      for (i=0;i<8;i++)
+      {
+         if ((p_player->ap >= contract_cards_ap_cost[i]) &&
+             (core.board_contract_cards[i] != NULL))
+         {
+            core.board_cards_marked[5+i] = TRUE;
+         }
+      }
+      break;
+   }
    default:
       break;
    }

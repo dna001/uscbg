@@ -82,8 +82,8 @@ static gui_widget_t* gui_log_create(void)
    p_log->base.free = gui_log_free;
    p_log->log_color = GLX_RGBA(0xff,0xff,0xff,0xff);
    p_log->p_font = glx_load_font("fonts/cour.ttf", 12);
-   p_log->border_color = GLX_RGBA(0x40, 0x40, 0x40, 0xff);
-   p_log->bg_color = GLX_RGBA(0x40, 0x40, 0x40, 0x00);
+   p_log->border_color = GLX_RGBA(0x80, 0x80, 0x80, 0xff);
+   p_log->bg_color = GLX_RGBA(0x40, 0x40, 0x40, 0xff);
    DLNK_INIT(&p_log->log_head);
    p_log->p_pos = (gui_log_entry_t*)&p_log->log_head;
    p_log->max_log_items = 20;

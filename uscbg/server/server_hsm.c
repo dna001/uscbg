@@ -473,6 +473,8 @@ STATIC hsm_msg_t const* srv_action_build_hnd(srv_hsm_t* p_hsm,
       p_msg = HSM_MSG_PROCESSED;
       break;
    case HSM_EVT_NET_SELECT_BOARD_CARD:
+      p_core->current_contract_card = (card_contract_t*)
+         p_core->board_contract_cards[p_core->card_selection - 5];
       net_server_send_cmd(p_core->active_player->id,
          NET_CMD_SERVER_SELECT_PLAYER_CARD, NULL);
       p_msg = HSM_MSG_PROCESSED;
@@ -482,7 +484,36 @@ STATIC hsm_msg_t const* srv_action_build_hnd(srv_hsm_t* p_hsm,
       card_t* p_card = cards_find(&p_core->active_player->cards_head,
          p_core->card_selection);
       REQUIRE(p_card != NULL);
+      if ((p_core->current_contract_card->size == 2) ||
+          (p_core->current_contract_card->size == 3))
+      {
+         net_server_send_cmd(p_core->active_player->id,
+            NET_CMD_SERVER_SELECT_BUILDING_ROTATION, NULL);
+      }
+      else
+      {
+         net_server_send_cmd(p_core->active_player->id,
+            NET_CMD_SERVER_SELECT_BOARD_LOT, NULL);
+      }
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   }
+   case HSM_EVT_NET_SELECT_BUILDING_ROTATION:
+   {
+      net_server_send_cmd(p_core->active_player->id,
+         NET_CMD_SERVER_SELECT_BOARD_LOT, NULL);
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   }
+   case HSM_EVT_NET_SELECT_BOARD_LOT:
+   {
       core_action_build();
+      HSM_STATE_TRAN(p_hsm, &p_hsm->select_action);
+      p_msg = HSM_MSG_PROCESSED;
+      break;
+   }
+   case HSM_EVT_NET_BACK:
+   {
       HSM_STATE_TRAN(p_hsm, &p_hsm->select_action);
       p_msg = HSM_MSG_PROCESSED;
       break;

@@ -5,6 +5,7 @@
 
 set(USCBG_CLIENT_SRCS
   us.c
+  gui_cardwnd.c
   gui_gbwnd.c
   gui_log.c
   gui_logwnd.c

@@ -232,6 +232,9 @@ static void net_client_parse_command(int sock, void* data, int len)
             p_blk->id, p_blk->n_buildings, p_blk->value);
          }
          break;
+      case NET_CMD_SERVER_SELECT_BUILDING_ROTATION:
+         main_hsm_evt(HSM_EVT_NET_SELECT_BUILDING_ROTATION);
+         break;
       case NET_CMD_SERVER_SELECT_BOARD_LOT:
          main_hsm_evt(HSM_EVT_NET_SELECT_BOARD_LOT);
          break;
@@ -314,6 +317,18 @@ void net_client_send_cmd(net_us_cmd_t cmd, uint32_t data)
          len += pbuf_pack(&packet[2], "b", color);
          break;
       }
+      case NET_CMD_CLIENT_SELECT_ACTION:
+      {
+         uint8_t action = (uint8_t)data;
+         len += pbuf_pack(&packet[2], "b", action);
+         break;
+      }
+      case NET_CMD_CLIENT_SELECT_BUILDING_ROTATION:
+      {
+         uint8_t rotation = (uint8_t)data;
+         len += pbuf_pack(&packet[2], "b", rotation);
+         break;
+      }
       case NET_CMD_CLIENT_SELECT_BOARD_LOT:
       {
          len += pbuf_pack(&packet[2], "b", core_get()->board_lot_selection);
@@ -334,6 +349,8 @@ void net_client_send_cmd(net_us_cmd_t cmd, uint32_t data)
       case NET_CMD_CLIENT_PASS:
          break;
       case NET_CMD_CLIENT_DONE:
+         break;
+      case NET_CMD_CLIENT_BACK:
          break;
       default:
          TRC_ERR(net_client, "Error: Unknown command %d", cmd);
